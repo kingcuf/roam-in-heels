@@ -270,36 +270,91 @@ const Icon = ({ name, className = 'w-5 h-5' }) => {
 /* ============================================================================
  * Main App
  * ========================================================================= */
+/* ----------------------------------------------------------------------------
+ * Routing — two kinds of page, no router library needed:
+ *   /                 home: intro + one card per property
+ *   /homes/<id>       that property's details + the enquiry form
+ * vercel.json rewrites /homes/* to index.html so a shared link loads directly.
+ * -------------------------------------------------------------------------- */
+const homePath = (id) => `/homes/${id}`
+function currentPropertyId() {
+  const m = /^\/homes\/([^/?#]+)/.exec(window.location.pathname)
+  return m && propertyById(m[1]) ? m[1] : null
+}
+function navigate(to) {
+  if (to === window.location.pathname) return
+  window.history.pushState({}, '', to)
+  window.dispatchEvent(new PopStateEvent('popstate'))
+}
+// Plain <a href> that routes in-app on a normal click, but still lets
+// cmd/ctrl-click open a new tab.
+function Link({ to, className, children, ...rest }) {
+  const onClick = (e) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    e.preventDefault()
+    navigate(to)
+  }
+  return <a href={to} onClick={onClick} className={className} {...rest}>{children}</a>
+}
+
 export default function App() {
+  const [pageId, setPageId] = useState(currentPropertyId)
   // Which home's gallery is open in the lightbox (null = closed)
   const [galleryFor, setGalleryFor] = useState(null)
-  // The property the enquiry form is about. '' = either home.
-  const [enquiryProp, setEnquiryProp] = useState('')
-  const enquireAbout = (id) => {
-    setEnquiryProp(id)
+
+  useEffect(() => {
+    const onPop = () => { setPageId(currentPropertyId()); setGalleryFor(null) }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  // A new page starts at the top, and says which home it is in the tab title.
+  const property = pageId ? propertyById(pageId) : null
+  useEffect(() => {
+    if (!window.location.hash) window.scrollTo(0, 0)
+    document.title = property
+      ? `${property.cardTitle} · ${property.floor} — Roam in Heels`
+      : 'Roam in Heels — River-view homes in Noida'
+  }, [pageId])
+
+  return (
+    <div className="min-h-screen bg-white text-espresso">
+      <NavBar onDetail={!!property} />
+      <main>
+        {property ? (
+          <PropertyPage key={property.id} property={property} openGallery={() => setGalleryFor(property.id)} />
+        ) : (
+          <>
+            <Intro />
+            <PropertyCards />
+          </>
+        )}
+      </main>
+      <Footer onDetail={!!property} />
+      {galleryFor && <GalleryLightbox property={propertyById(galleryFor)} onClose={() => setGalleryFor(null)} />}
+      {property && <StickyMobileCta />}
+    </div>
+  )
+}
+
+/* One property: its details, then the enquiry form already set to it. */
+function PropertyPage({ property, openGallery }) {
+  // The form's home picker starts on this home; the guest can still switch it.
+  const [enquiryProp, setEnquiryProp] = useState(property.id)
+  const toForm = () => {
+    setEnquiryProp(property.id)
     document.getElementById('enquiry')?.scrollIntoView({ behavior: 'smooth' })
   }
   return (
-    <div className="min-h-screen bg-white text-espresso">
-      <NavBar />
-      <main>
-        <Intro />
-        <PropertyCards onEnquire={enquireAbout} />
-        {PROPERTIES.map((p, i) => (
-          <PropertySection
-            key={p.id}
-            property={p}
-            index={i}
-            openGallery={() => setGalleryFor(p.id)}
-            onEnquire={() => enquireAbout(p.id)}
-          />
-        ))}
-        <EnquirySection propertyId={enquiryProp} setPropertyId={setEnquiryProp} />
-      </main>
-      <Footer />
-      {galleryFor && <GalleryLightbox property={propertyById(galleryFor)} onClose={() => setGalleryFor(null)} />}
-      <StickyMobileCta />
-    </div>
+    <>
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 pt-5 sm:pt-8">
+        <Link to="/" className="inline-flex items-center gap-1.5 text-[14px] text-bark hover:text-rose transition-colors">
+          <span aria-hidden className="text-lg leading-none">‹</span> All homes
+        </Link>
+      </div>
+      <PropertySection property={property} openGallery={openGallery} onEnquire={toForm} />
+      <EnquirySection propertyId={enquiryProp} setPropertyId={setEnquiryProp} />
+    </>
   )
 }
 
@@ -314,48 +369,44 @@ function Intro() {
         Two river-view homes, hosted by {spira3028.hostName}.
       </h1>
       <p className="text-bark mt-4 text-[16px] sm:text-[17px] font-light leading-[1.7] max-w-2xl">
-        High above the Yamuna in one of Noida's iconic towers — pick the one that suits your stay, or send one enquiry and we'll suggest whichever is free.
+        High above the Yamuna in one of Noida's iconic towers — pick the one that suits your stay and send us an enquiry from its page.
       </p>
     </section>
   )
 }
 
-function PropertyCards({ onEnquire }) {
+function PropertyCards() {
   return (
-    <section aria-label="Our homes" className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 mt-8 sm:mt-12">
+    <section id="homes" aria-label="Our homes" className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 mt-8 sm:mt-12 mb-16 sm:mb-24">
       <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
         {PROPERTIES.map((p) => {
           const h = p.highlights
           return (
-            <article key={p.id} className="bg-white rounded-[20px] shadow-card overflow-hidden flex flex-col">
-              <a href={`#${p.id}`} className="block relative group overflow-hidden bg-bone aspect-[4/3]">
+            <Link
+              key={p.id}
+              to={homePath(p.id)}
+              aria-label={`${p.cardTitle}, ${p.floor} — view details`}
+              className="group bg-white rounded-[20px] shadow-card hover:shadow-soft overflow-hidden flex flex-col transition-shadow duration-200 ease-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-rose/40"
+            >
+              <div className="block relative overflow-hidden bg-bone aspect-[4/3]">
                 <img src={p.images[0]} alt={p.name} loading="eager" className="w-full h-full object-cover transition-transform duration-[480ms] ease-soft group-hover:scale-[1.03]" />
                 <span className="absolute top-4 left-4 bg-white/95 text-espresso text-[12px] tracking-[0.06em] uppercase px-3 py-1.5 rounded-pill shadow-soft">
                   {p.floor}
                 </span>
-              </a>
+              </div>
               <div className="p-6 sm:p-7 flex flex-col flex-1">
                 <h2 className="font-display text-2xl sm:text-[1.75rem] leading-[1.15]">{p.cardTitle}</h2>
                 <p className="text-bark mt-2 text-[15px] leading-[1.6] font-light">{p.cardLine}</p>
                 <p className="text-driftwood mt-3 text-[13px]">
                   {h.guests} guests · {h.bedrooms} bedroom · {h.beds} bed · {h.bathrooms} bathroom
                 </p>
-                <div className="mt-6 pt-5 border-t border-stone flex items-center gap-3 mt-auto">
-                  <a
-                    href={`#${p.id}`}
-                    className="flex-1 inline-flex items-center justify-center border border-cocoa text-espresso hover:bg-bone py-3 rounded-pill text-[14px] tracking-[0.02em] transition-colors duration-200 ease-soft"
-                  >
-                    View details
-                  </a>
-                  <button
-                    onClick={() => onEnquire(p.id)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 bg-rose hover:bg-cocoa text-white py-3 rounded-pill text-[14px] tracking-[0.02em] transition-colors duration-200 ease-soft"
-                  >
-                    Enquire <Icon name="arrow" className="w-4 h-4" />
-                  </button>
+                <div className="mt-auto pt-6">
+                  <span className="flex w-full items-center justify-center gap-2 bg-rose group-hover:bg-cocoa text-white py-3 rounded-pill text-[14px] tracking-[0.02em] transition-colors duration-200 ease-soft">
+                    View details <Icon name="arrow" className="w-4 h-4" />
+                  </span>
                 </div>
               </div>
-            </article>
+            </Link>
           )
         })}
       </div>
@@ -366,7 +417,7 @@ function PropertyCards({ onEnquire }) {
 /* ----------------------------------------------------------------------------
  * Nav — paper transparent at top, blurs to translucent paper on scroll
  * -------------------------------------------------------------------------- */
-function NavBar() {
+function NavBar({ onDetail }) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -384,7 +435,7 @@ function NavBar() {
       ].join(' ')}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 h-16 sm:h-20 lg:h-[120px] flex items-center justify-between gap-3">
-        <a href="#top" className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0 shrink">
+        <Link to="/" className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0 shrink">
           <span
             className="w-11 h-11 sm:w-14 sm:h-14 lg:w-[100px] lg:h-[100px] rounded-full bg-cover bg-center shrink-0"
             style={{ backgroundImage: 'url(/logo.png)' }}
@@ -393,7 +444,7 @@ function NavBar() {
           <span className="hidden sm:inline font-display text-rose text-lg lg:text-2xl leading-none whitespace-nowrap">
             Roam in heels
           </span>
-        </a>
+        </Link>
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {[
             { label: 'Airbnb',      icon: '/icons/airbnb.png',    href: 'https://www.airbnb.co.in/rooms/1676660261082003123?photo_id=2619490219&source_impression_id=p3_1778331410_P3OKpLmJ8GlmxTOG&previous_page_section_name=1000' },
@@ -413,12 +464,12 @@ function NavBar() {
               <img src={link.icon} alt={link.label} className="w-full h-full object-contain" />
             </a>
           ))}
-          <a
+          {onDetail && <a
             href="#enquiry"
             className="hidden sm:inline-flex items-center gap-2 border border-cocoa text-espresso hover:bg-bone px-4 sm:px-5 py-1.5 sm:py-2 rounded-pill text-[12px] sm:text-[13px] tracking-[0.02em] transition-colors duration-200 ease-soft ml-1 sm:ml-2 whitespace-nowrap"
           >
             Send enquiry
-          </a>
+          </a>}
         </div>
       </div>
     </header>
@@ -428,19 +479,19 @@ function NavBar() {
 /* ----------------------------------------------------------------------------
  * Property showcase
  * -------------------------------------------------------------------------- */
-function PropertySection({ property, index, openGallery, onEnquire }) {
+function PropertySection({ property, openGallery, onEnquire }) {
   const { name, shortDescription, images, gallery, highlights, perfectFor, spaces } = property
   const [activeImage, setActiveImage] = useState(0)
   const totalPhotos = gallery.reduce((n, g) => n + g.photos.length, 0)
 
   return (
-    <section id={property.id} className="scroll-mt-20 lg:scroll-mt-32 max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 pt-16 sm:pt-24 lg:pt-28">
+    <section id="property" className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 pt-4 sm:pt-6">
       {/* Title block */}
-      <div className="mb-5 sm:mb-10 max-w-4xl border-t border-stone pt-10 sm:pt-14">
-        <div className="eyebrow mb-3">Home {index + 1} of {PROPERTIES.length} · {property.floor}</div>
-        <h2 className="font-display text-[clamp(1.75rem,4vw+0.25rem,3.25rem)] leading-[1.1] sm:leading-[1.05] tracking-[-0.01em]">
+      <div className="mb-5 sm:mb-10 max-w-4xl">
+        <div className="eyebrow mb-3">{property.floor} · Supernova Spira, Noida</div>
+        <h1 className="font-display text-[clamp(1.875rem,5vw+0.25rem,4rem)] leading-[1.1] sm:leading-[1.05] tracking-[-0.01em]">
           {name}
-        </h2>
+        </h1>
       </div>
 
       {/* Gallery */}
@@ -1024,7 +1075,7 @@ function SuccessState({ onReset, hostName }) {
 /* ----------------------------------------------------------------------------
  * Footer
  * -------------------------------------------------------------------------- */
-function Footer() {
+function Footer({ onDetail }) {
   return (
     <footer className="bg-white border-t border-stone pb-24 lg:pb-0">
       <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 py-10 sm:py-14 grid sm:grid-cols-[auto_1fr_auto] gap-6 sm:gap-8 items-start text-[14px] text-bark">
@@ -1044,7 +1095,7 @@ function Footer() {
         <div />
         <div className="text-driftwood text-[12.5px] sm:text-right leading-relaxed">
           <div>© {new Date().getFullYear()} Roam in Heels.</div>
-          <a href="#enquiry" className="text-rose hover:text-cocoa transition-colors">
+          <a href={onDetail ? '#enquiry' : '#homes'} className="text-rose hover:text-cocoa transition-colors">
             Contact the host
           </a>
         </div>
