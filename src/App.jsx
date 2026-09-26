@@ -19,9 +19,9 @@ const spira2212 = {
   shortDescription:
     "We're an IIT graduate couple who love designing beautiful spaces and hosting amazing guests. This 22nd-floor studio in Supernova Spira, Sector 94 Noida brings elegant designer interiors with a premium hotel-like feel — a crystal chandelier over a plush L-shaped sofa, a comfortable bed with high-quality linens, a rain shower, a Netflix-and-work nook, and a private balcony with river and sunset views. High-speed Wi-Fi, a well-equipped kitchenette and hassle-free self check-in make it easy for couples, work travellers and staycation lovers.",
   images: [
-    '/photos/2212/bedroom-7.jpg',   // hero — bed facing the river through glass doors
+    '/photos/2212/exterior-1.jpg',  // cover — sunset over the Yamuna from the balcony
+    '/photos/2212/bedroom-7.jpg',   // bed facing the river through glass doors
     '/photos/2212/living-2.jpg',
-    '/photos/2212/balcony-2.jpg',
     '/photos/2212/kitchen-2.jpg',
     '/photos/2212/workspace-1.jpg',
   ],
@@ -741,12 +741,6 @@ function EnquirySection({ propertyId, setPropertyId }) {
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('idle') // idle | submitting | success | error
 
-  // Local-time ISO (YYYY-MM-DDTHH:MM) for use as `min` on datetime-local inputs.
-  const nowLocalISO = useMemo(() => {
-    const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-    return d.toISOString().slice(0, 16)
-  }, [])
-
   const chosen = propertyById(propertyId)
   // Guest cap: the chosen home's, or the larger of the two when either will do.
   const maxGuests = chosen ? chosen.highlights.guests : Math.max(...PROPERTIES.map((p) => p.highlights.guests))
@@ -872,22 +866,12 @@ function EnquirySection({ propertyId, setPropertyId }) {
                 />
               </Field>
 
-              <div className="grid grid-cols-2 gap-4">
-                <DateTimeField
-                  placeholder="Check-in"
-                  value={form.checkIn}
-                  min={nowLocalISO}
-                  onChange={(e) => update('checkIn', e.target.value)}
-                  error={errors.checkIn}
-                />
-                <DateTimeField
-                  placeholder="Check-out"
-                  value={form.checkOut}
-                  min={form.checkIn || nowLocalISO}
-                  onChange={(e) => update('checkOut', e.target.value)}
-                  error={errors.checkOut}
-                />
-              </div>
+              <StayPicker
+                checkIn={form.checkIn}
+                checkOut={form.checkOut}
+                onChange={(ci, co) => { update('checkIn', ci); update('checkOut', co) }}
+                error={errors.checkOut}
+              />
 
               <Field label="Guests" error={errors.guests}>
                 <select
@@ -998,28 +982,170 @@ function Accordion({ emoji, title, children }) {
   )
 }
 
-/* Date+time input that shows a custom placeholder when empty and reveals the
- * native datetime picker on focus.  Trick: render as type="text" while empty
- * & blurred, switch to type="datetime-local" when focused or filled.
- */
-function DateTimeField({ placeholder, value, onChange, min, error }) {
-  const [focused, setFocused] = useState(false)
-  const inputType = (focused || value) ? 'datetime-local' : 'text'
+/* ----------------------------------------------------------------------------
+ * Stay picker — tap-to-pick calendar instead of the browser's datetime box,
+ * which made guests type "dd/mm/yyyy, --:--". Tap the check-in day, then the
+ * check-out day; times are a dropdown that starts at the house times.
+ * Values stay 'YYYY-MM-DDTHH:MM' so the API, email and dashboard are unchanged.
+ * -------------------------------------------------------------------------- */
+const DEFAULT_IN = '12:00'   // check-in after 12:00 pm
+const DEFAULT_OUT = '10:00'  // check-out before 10:00 am
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const pad2 = (n) => String(n).padStart(2, '0')
+const ymd = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+const TIMES = Array.from({ length: 48 }, (_, i) => `${pad2(Math.floor(i / 2))}:${i % 2 ? '30' : '00'}`)
+function fmtTime(t) {
+  const [h, m] = t.split(':').map(Number)
+  return `${((h + 11) % 12) + 1}:${pad2(m)} ${h >= 12 ? 'PM' : 'AM'}`
+}
+function fmtDay(key) {
+  const [y, m, d] = key.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  return dt.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+function StayPicker({ checkIn, checkOut, onChange, error }) {
+  const inDay = checkIn.slice(0, 10), inTime = checkIn.slice(11, 16) || DEFAULT_IN
+  const outDay = checkOut.slice(0, 10), outTime = checkOut.slice(11, 16) || DEFAULT_OUT
+  const [open, setOpen] = useState(false)
+  // Which end the next tap sets. After check-in is picked it moves to check-out.
+  const [picking, setPicking] = useState('in')
+  const today = ymd(new Date())
+  const [view, setView] = useState(() => {
+    const d = inDay ? new Date(inDay + 'T00:00') : new Date()
+    return { y: d.getFullYear(), m: d.getMonth() }
+  })
+
+  const set = (ci, co) => onChange(ci ? `${ci}T${inTime}` : '', co ? `${co}T${outTime}` : '')
+  const openAt = (which) => {
+    setPicking(which === 'out' && !inDay ? 'in' : which)
+    setOpen(true)
+  }
+  function pickDay(key) {
+    if (key < today) return
+    if (picking === 'in' || !inDay || key < inDay) {
+      // A new check-in; keep the check-out only if it still comes after it.
+      set(key, outDay && outDay > key ? outDay : '')
+      setPicking('out')
+    } else {
+      set(inDay, key)
+      setPicking('in')
+      setOpen(false)
+    }
+  }
+
+  // Calendar grid for the viewed month, weeks starting Monday.
+  const first = new Date(view.y, view.m, 1)
+  const lead = (first.getDay() + 6) % 7
+  const days = new Date(view.y, view.m + 1, 0).getDate()
+  const cells = [...Array(lead).fill(null), ...Array.from({ length: days }, (_, i) => ymd(new Date(view.y, view.m, i + 1)))]
+  const thisMonth = new Date().getFullYear() * 12 + new Date().getMonth()
+  const canPrev = view.y * 12 + view.m > thisMonth
+  const shift = (n) => setView(({ y, m }) => { const d = new Date(y, m + n, 1); return { y: d.getFullYear(), m: d.getMonth() } })
+  const nights = inDay && outDay
+    ? Math.round((new Date(outDay + 'T00:00') - new Date(inDay + 'T00:00')) / 86400000) : 0
+
+  const box = (which, label, day, time) => {
+    const active = open && picking === which
+    return (
+      <button
+        type="button"
+        onClick={() => (active ? setOpen(false) : openAt(which))}
+        aria-expanded={active}
+        className={[
+          'text-left rounded-md bg-white px-4 py-2.5 border transition-all duration-200 ease-soft',
+          active ? 'border-rose ring-2 ring-rose/15' : error && which === 'out' ? 'border-clay' : 'border-stone hover:border-driftwood',
+        ].join(' ')}
+      >
+        <span className="block text-[11px] uppercase tracking-[0.08em] text-driftwood">{label}</span>
+        <span className={`block text-[15px] mt-0.5 ${day ? 'text-espresso' : 'text-driftwood'}`}>
+          {day ? `${fmtDay(day)} · ${fmtTime(time)}` : 'Add date'}
+        </span>
+      </button>
+    )
+  }
+
   return (
-    <label className="block">
-      <input
-        type={inputType}
-        placeholder={placeholder}
-        aria-label={placeholder}
-        value={value}
-        min={min}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        onChange={onChange}
-        className={inputCls(error)}
-      />
+    <div>
+      <div className="grid grid-cols-2 gap-3">
+        {box('in', 'Check-in', inDay, inTime)}
+        {box('out', 'Check-out', outDay, outTime)}
+      </div>
       {error && <span className="text-[12px] text-clay mt-1.5 block">{error}</span>}
-    </label>
+
+      {open && (
+        <div className="mt-3 rounded-[14px] border border-stone bg-white p-4 shadow-soft">
+          <div className="text-[13px] text-bark mb-3">
+            {picking === 'in' ? 'Select your check-in date' : 'Now select your check-out date'}
+          </div>
+          <div className="flex items-center justify-between mb-2">
+            <button type="button" onClick={() => shift(-1)} disabled={!canPrev} aria-label="Previous month"
+              className="w-9 h-9 rounded-full hover:bg-bone disabled:opacity-30 disabled:hover:bg-transparent text-xl leading-none">‹</button>
+            <div className="font-display text-lg">{MONTHS[view.m]} {view.y}</div>
+            <button type="button" onClick={() => shift(1)} aria-label="Next month"
+              className="w-9 h-9 rounded-full hover:bg-bone text-xl leading-none">›</button>
+          </div>
+          <div className="grid grid-cols-7 text-center text-[11px] uppercase tracking-[0.06em] text-driftwood mb-1">
+            {['Mo','Tu','We','Th','Fr','Sa','Su'].map((d) => <div key={d} className="py-1">{d}</div>)}
+          </div>
+          <div className="grid grid-cols-7 gap-y-1 text-center">
+            {cells.map((key, i) => {
+              if (!key) return <div key={'b' + i} />
+              const past = key < today
+              const isIn = key === inDay, isOut = key === outDay
+              const between = inDay && outDay && key > inDay && key < outDay
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={past}
+                  onClick={() => pickDay(key)}
+                  aria-label={fmtDay(key)}
+                  aria-pressed={isIn || isOut}
+                  className={[
+                    'h-10 text-[14px] transition-colors',
+                    between ? 'bg-bone' : '',
+                    isIn && outDay ? 'rounded-l-full' : '',
+                    isOut ? 'rounded-r-full' : '',
+                    isIn || isOut ? 'bg-rose text-white font-medium rounded-full' : past ? 'text-stone cursor-not-allowed' : 'text-espresso hover:bg-bone rounded-full',
+                    key === today && !isIn && !isOut ? 'font-semibold underline underline-offset-4 decoration-rose/50' : '',
+                  ].join(' ')}
+                >
+                  {Number(key.slice(8))}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-stone">
+            <label className="block">
+              <span className="block text-[11px] uppercase tracking-[0.08em] text-driftwood mb-1">Check-in time</span>
+              <select value={inTime} onChange={(e) => onChange(inDay ? `${inDay}T${e.target.value}` : '', checkOut)}
+                disabled={!inDay} className={inputCls(false) + ' py-2 disabled:opacity-50'}>
+                {TIMES.map((t) => <option key={t} value={t}>{fmtTime(t)}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="block text-[11px] uppercase tracking-[0.08em] text-driftwood mb-1">Check-out time</span>
+              <select value={outTime} onChange={(e) => onChange(checkIn, outDay ? `${outDay}T${e.target.value}` : '')}
+                disabled={!outDay} className={inputCls(false) + ' py-2 disabled:opacity-50'}>
+                {TIMES.map((t) => <option key={t} value={t}>{fmtTime(t)}</option>)}
+              </select>
+            </label>
+          </div>
+
+          <div className="flex items-center justify-between mt-4">
+            <button type="button" onClick={() => { onChange('', ''); setPicking('in') }}
+              className="text-[13px] text-bark underline underline-offset-2 hover:text-rose">Clear dates</button>
+            <div className="flex items-center gap-3">
+              {nights > 0 && <span className="text-[13px] text-bark">{nights} night{nights === 1 ? '' : 's'}</span>}
+              <button type="button" onClick={() => setOpen(false)}
+                className="bg-espresso text-white text-[13px] px-5 py-2 rounded-pill hover:opacity-90">Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
