@@ -1,13 +1,111 @@
 import { useState, useMemo, useEffect, cloneElement, isValidElement } from 'react'
 
 /* ----------------------------------------------------------------------------
- * PROPERTY DATA — replace these fields to relist a different property.
- * Keep the shape stable; the UI reads only from this object.
+ * PROPERTY DATA — one entry per home. The UI reads only from these objects;
+ * add a third by appending another with the same shape.
+ * `dashName` must match the property's name in the Roam in Heels dashboard:
+ * enquiries are filed under it, so the dashboard's property filter finds them.
  * -------------------------------------------------------------------------- */
-const property = {
+const LOCATION_BODY = "Supernova Spira is one of Noida's iconic high-rise addresses in Sector 94. The location offers quick access to:\n\n• Amity University — approx. 2 km\n• DLF Mall of India, Sector 18 — approx. 5 km\n• Nearest Metro: Okhla Bird Sanctuary — approx. 1 km\n• Film City & South Delhi — approx. 5 km\n• Vasco Cafe — approx. 7 km\n\nYou get the comfort of a peaceful high-rise stay while staying well-connected to major city spots."
+
+const spira2212 = {
+  id: 'spira-2212',
+  dashName: 'Spira 2212',
+  floor: '22nd floor',
+  name: '22nd floor — Designer river-view studio, Noida',
+  cardTitle: 'Designer river-view studio',
+  cardLine: 'Crystal chandelier, rain shower and a sunset balcony over the Yamuna.',
+  airbnb: 'https://www.airbnb.co.in/rooms/1746225491231648460',
+  shortDescription:
+    "We're an IIT graduate couple who love designing beautiful spaces and hosting amazing guests. This 22nd-floor studio in Supernova Spira, Sector 94 Noida brings elegant designer interiors with a premium hotel-like feel — a crystal chandelier over a plush L-shaped sofa, a comfortable bed with high-quality linens, a rain shower, a Netflix-and-work nook, and a private balcony with river and sunset views. High-speed Wi-Fi, a well-equipped kitchenette and hassle-free self check-in make it easy for couples, work travellers and staycation lovers.",
+  images: [
+    '/photos/2212/bedroom-7.jpg',   // hero — bed facing the river through glass doors
+    '/photos/2212/living-2.jpg',
+    '/photos/2212/balcony-2.jpg',
+    '/photos/2212/kitchen-2.jpg',
+    '/photos/2212/workspace-1.jpg',
+  ],
+  gallery: [
+    { label: 'Living room', photos: Array.from({ length: 7 }, (_, i) => `/photos/2212/living-${i + 1}.jpg`) },
+    { label: 'Bedroom',     photos: Array.from({ length: 8 }, (_, i) => `/photos/2212/bedroom-${i + 1}.jpg`) },
+    { label: 'Balcony',     photos: [...Array.from({ length: 4 }, (_, i) => `/photos/2212/balcony-${i + 1}.jpg`), '/photos/2212/exterior-1.jpg', '/photos/2212/exterior-2.jpg'] },
+    { label: 'Kitchen',     photos: Array.from({ length: 6 }, (_, i) => `/photos/2212/kitchen-${i + 1}.jpg`) },
+    { label: 'Bathroom',    photos: Array.from({ length: 2 }, (_, i) => `/photos/2212/bathroom-${i + 1}.jpg`) },
+    { label: 'Workspace',   photos: Array.from({ length: 2 }, (_, i) => `/photos/2212/workspace-${i + 1}.jpg`) },
+    { label: 'Entrance',    photos: Array.from({ length: 2 }, (_, i) => `/photos/2212/extra-${i + 1}.jpg`) },
+  ],
+  highlights: { guests: 2, bedrooms: 1, beds: 1, bathrooms: 1 },
+  perfectFor: [
+    {
+      emoji: '❤️',
+      title: 'Couples & sunset lovers',
+      body: "Designed for two. Watch the sun go down over the Yamuna from the wicker seats on the balcony, then settle in under the crystal chandelier with a movie on Netflix or a round of Jenga.\n\nThe bed opens straight onto the balcony through floor-to-ceiling glass doors, so you wake up to the river and the city skyline — a lovely setting for birthdays, anniversaries or simply a quiet night in.",
+    },
+    {
+      emoji: '💻',
+      title: 'Work travellers & remote workers',
+      body: "A dedicated workspace with an ergonomic chair, high-speed Wi-Fi and a calm, private setting make it easy to take calls and get focused work done.\n\nWhen the laptop closes, the same corner turns into a cozy Netflix and Prime Video spot with a river-view balcony right beside it.",
+    },
+    {
+      emoji: '🌆',
+      title: 'Staycation lovers',
+      body: "A premium, hotel-like escape without leaving the city: designer interiors, warm lighting, a spa-like rain shower and sparkling skyline views after dark. Perfect for a solo reset or a weekend away from routine.",
+    },
+    {
+      emoji: '🗓️',
+      title: 'Longer stays',
+      body: "Stays of 28 days or more are welcome. The kitchenette, wardrobe and chest of drawers, clothes drying rack and daily housekeeping (10 am – 6 pm) make it comfortable to settle in for a while.",
+    },
+    { emoji: '🚇', title: 'City explorers & metro travellers', body: LOCATION_BODY },
+  ],
+  spaces: [
+    {
+      emoji: '🌅',
+      title: 'Balcony with river & sunset views',
+      body: "A peaceful private balcony with comfortable wicker seating and a glass-top table, looking out over the Yamuna and the Noida skyline. After dark, warm ambient lighting turns it into the perfect spot to sip a drink and take in the sparkling city lights.",
+    },
+    {
+      emoji: '🛋️',
+      title: 'Living room',
+      body: "Unwind beneath a stunning crystal chandelier on a plush L-shaped sofa with soft throws and elegant cushions, around a stylish marble-top coffee table. Floor-to-ceiling curtains add warmth and privacy.\n\nInside: sofa, central air conditioning, ceiling fan, board games (Jenga).",
+    },
+    {
+      emoji: '🌙',
+      title: 'Bedroom',
+      body: "A bright, cozy room with a double bed, soft cotton linens and warm neutral tones. Floor-to-ceiling glass doors open onto the balcony — curtains open for the morning light, room-darkening blinds for a lazy lie-in.\n\nInside: bed linen, extra pillows and blankets, hangers, wardrobe and chest of drawers, clothes drying rack.",
+    },
+    {
+      emoji: '🍽️',
+      title: 'Kitchen',
+      body: "A sleek, modern kitchenette with ample storage, a spacious countertop and sink, and a thoughtfully stocked tea-and-coffee corner — everything you need for a quick breakfast, a cup of chai or a light meal.\n\nInside: induction cooker, microwave, oven, fridge, freezer, mini fridge, electric kettle, coffee and tea, sugar and basic spices, pots and pans, oil, salt and pepper, crockery and cutlery, wine glasses.",
+    },
+    {
+      emoji: '🛁',
+      title: 'Bathroom',
+      body: "A modern bathroom with a sleek wall-mounted toilet, contemporary wash basin and a spacious overhead rain shower for a spa-like feel.\n\nInside: hot water, shampoo, body soap, shower gel, bidet, towels and toilet paper.",
+    },
+    {
+      emoji: '💻',
+      title: 'Workspace & entertainment',
+      body: "A multipurpose corner with a cushioned ergonomic chair — catch up on work, or switch off with your favourite shows.\n\nInside: dedicated workspace, high-speed Wi-Fi, HDTV with Netflix and Amazon Prime Video.",
+    },
+    {
+      emoji: '🏠',
+      title: 'Check-in, safety & facilities',
+      body: "Self check-in with a lockbox — check-in after 12:00 pm, check-out before 10:00 am. Quiet hours 10:00 pm – 8:00 am; up to 2 guests.\n\nLift, central air conditioning, smoke alarm and fire extinguisher, paid parking on premises with controlled access, pets welcome, and housekeeping available every day from 10:00 am to 6:00 pm.",
+    },
+  ],
+  hostName: 'Mansi & Deependra',
+}
+
+const spira3028 = {
+  id: 'spira-3028',
+  dashName: 'Spira 3028',      // the property's name in the Roam in Heels dashboard
+  floor: '30th floor',
   name: '30th floor — Luxury apartment (Riverview), Noida',
-  city: 'Mussoorie',
-  region: 'Uttarakhand',
+  cardTitle: 'Riverview luxury studio',
+  cardLine: 'Minimalist luxury, river views and a private balcony, 30 floors above Sector 94.',
+  airbnb: 'https://www.airbnb.co.in/rooms/1676660261082003123',
   shortDescription:
     "Hosted by Mansi & Deependra, a corporate-professional IIT graduate couple, this 30th-floor studio in Supernova Spira, Sector 94 Noida offers river views, minimalist luxury, cozy lighting, balcony seating, Smart TV, Wi-Fi, workspace, kitchen essentials, mini fridge, and games like Jenga & String Hockey. Perfect for couples, small families, work travellers, and staycation lovers. Near Okhla Bird Sanctuary Metro, Amity, Sector 18, DLF Mall, Film City & South Delhi.",
   // Hero gallery — 1 large + 4 thumbnails on desktop. Re-order to surface your favourites.
@@ -114,6 +212,9 @@ const property = {
   hostName: 'Mansi & Deependra',
 }
 
+const PROPERTIES = [spira3028, spira2212]
+const propertyById = (id) => PROPERTIES.find((p) => p.id === id)
+
 /* ----------------------------------------------------------------------------
  * SUBMIT HANDLER — POSTs to /api/enquiry, which sends the email via Resend.
  * Server-side handler lives in /api/enquiry.js at the project root.
@@ -170,23 +271,95 @@ const Icon = ({ name, className = 'w-5 h-5' }) => {
  * Main App
  * ========================================================================= */
 export default function App() {
-  const [activeImage, setActiveImage] = useState(0)
-  const [galleryOpen, setGalleryOpen] = useState(false)
+  // Which home's gallery is open in the lightbox (null = closed)
+  const [galleryFor, setGalleryFor] = useState(null)
+  // The property the enquiry form is about. '' = either home.
+  const [enquiryProp, setEnquiryProp] = useState('')
+  const enquireAbout = (id) => {
+    setEnquiryProp(id)
+    document.getElementById('enquiry')?.scrollIntoView({ behavior: 'smooth' })
+  }
   return (
     <div className="min-h-screen bg-white text-espresso">
       <NavBar />
       <main>
-        <PropertySection
-          activeImage={activeImage}
-          setActiveImage={setActiveImage}
-          openGallery={() => setGalleryOpen(true)}
-        />
-        <EnquirySection />
+        <Intro />
+        <PropertyCards onEnquire={enquireAbout} />
+        {PROPERTIES.map((p, i) => (
+          <PropertySection
+            key={p.id}
+            property={p}
+            index={i}
+            openGallery={() => setGalleryFor(p.id)}
+            onEnquire={() => enquireAbout(p.id)}
+          />
+        ))}
+        <EnquirySection propertyId={enquiryProp} setPropertyId={setEnquiryProp} />
       </main>
       <Footer />
-      {galleryOpen && <GalleryLightbox onClose={() => setGalleryOpen(false)} />}
+      {galleryFor && <GalleryLightbox property={propertyById(galleryFor)} onClose={() => setGalleryFor(null)} />}
       <StickyMobileCta />
     </div>
+  )
+}
+
+/* ----------------------------------------------------------------------------
+ * Intro + the two property cards — the first thing a visitor sees
+ * -------------------------------------------------------------------------- */
+function Intro() {
+  return (
+    <section id="top" className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 pt-6 sm:pt-10 lg:pt-12">
+      <div className="eyebrow mb-3">Supernova Spira · Sector 94, Noida</div>
+      <h1 className="font-display text-[clamp(2rem,5vw+0.25rem,4rem)] leading-[1.08] tracking-[-0.01em] max-w-4xl">
+        Two river-view homes, hosted by {spira3028.hostName}.
+      </h1>
+      <p className="text-bark mt-4 text-[16px] sm:text-[17px] font-light leading-[1.7] max-w-2xl">
+        High above the Yamuna in one of Noida's iconic towers — pick the one that suits your stay, or send one enquiry and we'll suggest whichever is free.
+      </p>
+    </section>
+  )
+}
+
+function PropertyCards({ onEnquire }) {
+  return (
+    <section aria-label="Our homes" className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 mt-8 sm:mt-12">
+      <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+        {PROPERTIES.map((p) => {
+          const h = p.highlights
+          return (
+            <article key={p.id} className="bg-white rounded-[20px] shadow-card overflow-hidden flex flex-col">
+              <a href={`#${p.id}`} className="block relative group overflow-hidden bg-bone aspect-[4/3]">
+                <img src={p.images[0]} alt={p.name} loading="eager" className="w-full h-full object-cover transition-transform duration-[480ms] ease-soft group-hover:scale-[1.03]" />
+                <span className="absolute top-4 left-4 bg-white/95 text-espresso text-[12px] tracking-[0.06em] uppercase px-3 py-1.5 rounded-pill shadow-soft">
+                  {p.floor}
+                </span>
+              </a>
+              <div className="p-6 sm:p-7 flex flex-col flex-1">
+                <h2 className="font-display text-2xl sm:text-[1.75rem] leading-[1.15]">{p.cardTitle}</h2>
+                <p className="text-bark mt-2 text-[15px] leading-[1.6] font-light">{p.cardLine}</p>
+                <p className="text-driftwood mt-3 text-[13px]">
+                  {h.guests} guests · {h.bedrooms} bedroom · {h.beds} bed · {h.bathrooms} bathroom
+                </p>
+                <div className="mt-6 pt-5 border-t border-stone flex items-center gap-3 mt-auto">
+                  <a
+                    href={`#${p.id}`}
+                    className="flex-1 inline-flex items-center justify-center border border-cocoa text-espresso hover:bg-bone py-3 rounded-pill text-[14px] tracking-[0.02em] transition-colors duration-200 ease-soft"
+                  >
+                    View details
+                  </a>
+                  <button
+                    onClick={() => onEnquire(p.id)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 bg-rose hover:bg-cocoa text-white py-3 rounded-pill text-[14px] tracking-[0.02em] transition-colors duration-200 ease-soft"
+                  >
+                    Enquire <Icon name="arrow" className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </article>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
@@ -255,17 +428,19 @@ function NavBar() {
 /* ----------------------------------------------------------------------------
  * Property showcase
  * -------------------------------------------------------------------------- */
-function PropertySection({ activeImage, setActiveImage, openGallery }) {
-  const { name, shortDescription, images, gallery, highlights, perfectFor, spaces, pricing } = property
+function PropertySection({ property, index, openGallery, onEnquire }) {
+  const { name, shortDescription, images, gallery, highlights, perfectFor, spaces } = property
+  const [activeImage, setActiveImage] = useState(0)
   const totalPhotos = gallery.reduce((n, g) => n + g.photos.length, 0)
 
   return (
-    <section id="property" className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 pt-6 sm:pt-10 lg:pt-12">
+    <section id={property.id} className="scroll-mt-20 lg:scroll-mt-32 max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 pt-16 sm:pt-24 lg:pt-28">
       {/* Title block */}
-      <div className="mb-5 sm:mb-10 max-w-4xl">
-        <h1 className="font-display text-[clamp(1.875rem,5vw+0.25rem,4rem)] leading-[1.1] sm:leading-[1.05] tracking-[-0.01em]">
+      <div className="mb-5 sm:mb-10 max-w-4xl border-t border-stone pt-10 sm:pt-14">
+        <div className="eyebrow mb-3">Home {index + 1} of {PROPERTIES.length} · {property.floor}</div>
+        <h2 className="font-display text-[clamp(1.75rem,4vw+0.25rem,3.25rem)] leading-[1.1] sm:leading-[1.05] tracking-[-0.01em]">
           {name}
-        </h1>
+        </h2>
       </div>
 
       {/* Gallery */}
@@ -375,13 +550,24 @@ function PropertySection({ activeImage, setActiveImage, openGallery }) {
         <aside className="lg:col-span-1">
           <div className="lg:sticky lg:top-32">
             <div className="bg-white rounded-[20px] p-7 shadow-card">
-              <a
-                href="#enquiry"
+              <button
+                onClick={onEnquire}
                 className="flex w-full items-center justify-center gap-2 bg-rose hover:bg-cocoa text-white font-medium tracking-[0.02em] py-3.5 rounded-pill transition-colors duration-200 ease-soft"
               >
-                Send enquiry
+                Enquire about this home
                 <Icon name="arrow" className="w-4 h-4" />
-              </a>
+              </button>
+              {property.airbnb && (
+                <a
+                  href={property.airbnb}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 flex w-full items-center justify-center gap-2 border border-stone text-bark hover:bg-bone py-3 rounded-pill text-[14px] transition-colors duration-200 ease-soft"
+                >
+                  <img src="/icons/airbnb.png" alt="" className="w-4 h-4 object-contain" />
+                  View on Airbnb
+                </a>
+              )}
 
               <div className="mt-7 pt-6 border-t border-stone grid grid-cols-2 gap-3 text-[13px]">
                 <Trust label="Hosted personally" />
@@ -414,7 +600,7 @@ function Trust({ label }) {
 /* ----------------------------------------------------------------------------
  * Gallery lightbox
  * -------------------------------------------------------------------------- */
-function GalleryLightbox({ onClose }) {
+function GalleryLightbox({ property, onClose }) {
   // ESC to close
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
@@ -434,7 +620,7 @@ function GalleryLightbox({ onClose }) {
         <button onClick={onClose} className="text-cream text-sm tracking-[0.04em] uppercase border border-cream/30 rounded-pill px-4 py-1.5 hover:bg-cream/10 transition">
           ✕ Close
         </button>
-        <div className="font-display text-cream text-xl sm:text-2xl">Roam in heels</div>
+        <div className="font-display text-cream text-lg sm:text-2xl truncate ml-4">{property.cardTitle}</div>
       </div>
 
       <div className="max-w-5xl mx-auto py-10 px-5 sm:px-8" onClick={(e) => e.stopPropagation()}>
@@ -489,7 +675,7 @@ function StickyMobileCta() {
 /* ============================================================================
  * Enquiry section
  * ========================================================================= */
-function EnquirySection() {
+function EnquirySection({ propertyId, setPropertyId }) {
   const initial = {
     fullName: '',
     mobile: '',
@@ -510,6 +696,10 @@ function EnquirySection() {
     return d.toISOString().slice(0, 16)
   }, [])
 
+  const chosen = propertyById(propertyId)
+  // Guest cap: the chosen home's, or the larger of the two when either will do.
+  const maxGuests = chosen ? chosen.highlights.guests : Math.max(...PROPERTIES.map((p) => p.highlights.guests))
+
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
     if (errors[field]) setErrors((e) => ({ ...e, [field]: undefined }))
@@ -527,8 +717,8 @@ function EnquirySection() {
       e.checkOut = 'Check-out should be after check-in'
     }
     if (Number(form.guests) < 1) e.guests = 'At least one'
-    if (Number(form.guests) > property.highlights.guests) {
-      e.guests = `We sleep ${property.highlights.guests}, comfortably`
+    if (Number(form.guests) > maxGuests) {
+      e.guests = `We sleep ${maxGuests}, comfortably`
     }
     setErrors(e)
     return Object.keys(e).length === 0
@@ -541,7 +731,10 @@ function EnquirySection() {
     setStatus('submitting')
     const payload = {
       ...form,
-      property: property.name,
+      // The dashboard name ('Spira 2212'), so the enquiry lands under the right
+      // property there; '' when the guest is happy with either home.
+      property: chosen ? chosen.dashName : '',
+      propertyLabel: chosen ? `${chosen.dashName} — ${chosen.name}` : 'Either home — whichever is free',
       submittedAt: new Date().toISOString(),
     }
     try {
@@ -561,7 +754,7 @@ function EnquirySection() {
   }
 
   return (
-    <section id="enquiry" className="mt-16 sm:mt-24 lg:mt-32 mb-24 lg:mb-20 bg-cream">
+    <section id="enquiry" className="scroll-mt-16 sm:scroll-mt-20 lg:scroll-mt-[120px] mt-16 sm:mt-24 lg:mt-32 mb-24 lg:mb-20 bg-cream">
       <div
         className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 py-12 sm:py-20 lg:py-28 grid lg:grid-cols-2 gap-10 lg:gap-20 items-center bg-cover bg-center rounded-[24px] overflow-hidden"
         style={{
@@ -581,13 +774,31 @@ function EnquirySection() {
         {/* RIGHT — form card */}
         <div className="bg-white rounded-[20px] shadow-card p-7 sm:p-10">
           {status === 'success' ? (
-            <SuccessState onReset={reset} />
+            <SuccessState onReset={reset} hostName={spira3028.hostName} />
           ) : (
             <form onSubmit={onSubmit} className="space-y-5" noValidate>
               <div className="mb-2">
                 <div className="eyebrow mb-2">Send enquiry</div>
                 <h3 className="font-display text-3xl leading-tight">A few quick details.</h3>
               </div>
+
+              <label className="block">
+                <select
+                  value={propertyId}
+                  onChange={(e) => setPropertyId(e.target.value)}
+                  className={inputCls(false)}
+                  aria-label="Which home"
+                >
+                  <option value="">Either home — whichever is free</option>
+                  {PROPERTIES.map((p) => (
+                    <option key={p.id} value={p.id}>{p.floor} — {p.cardTitle}</option>
+                  ))}
+                </select>
+                <span className="text-[12.5px] text-bark mt-2 block leading-relaxed">
+                  <Icon name="sparkle" className="w-3.5 h-3.5 inline -mt-0.5 mr-1 text-rose" />
+                  In case the unit is not available on your dates, we will provide another unit in the same building.
+                </span>
+              </label>
 
               <Field label="Full name" required error={errors.fullName}>
                 <input
@@ -633,7 +844,7 @@ function EnquirySection() {
                   onChange={(e) => update('guests', Number(e.target.value))}
                   className={inputCls(errors.guests)}
                 >
-                  {Array.from({ length: property.highlights.guests }, (_, i) => i + 1).map((n) => (
+                  {Array.from({ length: maxGuests }, (_, i) => i + 1).map((n) => (
                     <option key={n} value={n}>{n} {n === 1 ? 'guest' : 'guests'}</option>
                   ))}
                 </select>
@@ -789,7 +1000,7 @@ function inputCls(hasError) {
   ].join(' ')
 }
 
-function SuccessState({ onReset }) {
+function SuccessState({ onReset, hostName }) {
   return (
     <div className="text-center py-6">
       <div className="mx-auto w-16 h-16 ring-mark flex items-center justify-center mb-5 text-rose">
@@ -798,7 +1009,7 @@ function SuccessState({ onReset }) {
       <div className="eyebrow mb-2">Sent</div>
       <h3 className="font-display text-3xl leading-tight mb-3">Thank you — your note's on its way.</h3>
       <p className="text-bark leading-relaxed max-w-sm mx-auto">
-        We've received your enquiry. <em>{property.hostName}</em> will get back to you shortly with availability and the rest of the small details.
+        We've received your enquiry. <em>{hostName}</em> will get back to you shortly with availability and the rest of the small details.
       </p>
       <button
         onClick={onReset}
@@ -826,7 +1037,7 @@ function Footer() {
           <div>
             <div className="font-display text-rose text-2xl leading-none pt-1">Roam in heels</div>
             <p className="mt-2 max-w-md leading-relaxed">
-              A small portfolio of warm, hand-picked private villas in the Indian hills. Hosted personally — never outsourced.
+              A small portfolio of warm, hand-picked homes. Hosted personally — never outsourced.
             </p>
           </div>
         </div>

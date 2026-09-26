@@ -46,8 +46,9 @@ function buildHtml(p) {
     <tr><td>
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.22em;color:#B0683C;font-weight:500;">New enquiry</div>
       <h1 style="font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:600;margin:8px 0 4px;color:#2E1F14;">${escape(p.fullName)}</h1>
-      <div style="color:#7A5C45;font-size:14px;margin-bottom:24px;">${escape(p.property || '')}</div>
+      <div style="color:#7A5C45;font-size:14px;margin-bottom:24px;">${escape(p.propertyLabel || p.property || '')}</div>
       <table cellpadding="0" cellspacing="0" border="0" style="width:100%;border-top:1px solid #E6D9C7;">
+        ${row('Home',      p.propertyLabel)}
         ${row('Mobile',    p.mobile)}
         ${row('Check-in',  fmtDateTime(p.checkIn))}
         ${row('Check-out', fmtDateTime(p.checkOut))}
@@ -68,7 +69,7 @@ function buildText(p) {
   const ref = referralLine(p)
   return [
     `New enquiry from ${p.fullName}`,
-    p.property ? `Property: ${p.property}` : '',
+    (p.propertyLabel || p.property) ? `Home: ${p.propertyLabel || p.property}` : '',
     '',
     `Mobile:    ${p.mobile}`,
     p.checkIn  ? `Check-in:  ${fmtDateTime(p.checkIn)}`  : '',
@@ -83,15 +84,41 @@ function buildText(p) {
   ].filter(Boolean).join('\n')
 }
 
+/* Files the enquiry in the Roam in Heels dashboard's database (Cloudflare
+ * Worker + D1), where it shows up on the app's Action tab. Server-to-server:
+ * ENQUIRY_KEY never reaches the browser. */
+async function saveToDashboard(payload) {
+  const base = process.env.SPIRA_API_URL
+  const key = process.env.ENQUIRY_KEY
+  if (!base || !key) throw new Error('SPIRA_API_URL / ENQUIRY_KEY not set')
+  const r = await fetch(base + '?action=submitEnquiry', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Enquiry-Key': key },
+    body: JSON.stringify(payload),
+  })
+  const j = await r.json().catch(() => ({}))
+  if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
+  return j.id
+}
+
+async function sendEmail(payload) {
+  if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY is not set')
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  const { data, error } = await resend.emails.send({
+    from: FROM,
+    to: RECIPIENTS,
+    subject: `New enquiry — ${payload.fullName}${payload.property ? ' · ' + payload.property : ''}`,
+    html: buildHtml(payload),
+    text: buildText(payload),
+  })
+  if (error) throw new Error(error.message || 'Resend error')
+  return data?.id
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ error: 'Method not allowed' })
-  }
-
-  if (!process.env.RESEND_API_KEY) {
-    console.error('[enquiry] RESEND_API_KEY is not set')
-    return res.status(500).json({ error: 'Email service not configured' })
   }
 
   // Vercel parses JSON bodies automatically when Content-Type is application/json
@@ -101,25 +128,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Name and mobile are required' })
   }
 
-  const resend = new Resend(process.env.RESEND_API_KEY)
+  // Both at once, and either one is enough: a guest should not be told their
+  // enquiry failed because the email service hiccuped while the dashboard got it
+  // (or the other way round). Each failure is logged for us to look at.
+  const [saved, mailed] = await Promise.allSettled([saveToDashboard(payload), sendEmail(payload)])
+  if (saved.status === 'rejected') console.error('[enquiry] dashboard save failed:', saved.reason)
+  if (mailed.status === 'rejected') console.error('[enquiry] email failed:', mailed.reason)
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from: FROM,
-      to: RECIPIENTS,
-      subject: `New enquiry — ${payload.fullName}`,
-      html: buildHtml(payload),
-      text: buildText(payload),
-    })
-
-    if (error) {
-      console.error('[enquiry] Resend error:', error)
-      return res.status(502).json({ error: 'Failed to send email' })
-    }
-
-    return res.status(200).json({ ok: true, id: data?.id })
-  } catch (err) {
-    console.error('[enquiry] Send threw:', err)
-    return res.status(500).json({ error: 'Send failed' })
+  if (saved.status === 'rejected' && mailed.status === 'rejected') {
+    return res.status(502).json({ error: 'Could not send the enquiry' })
   }
+  return res.status(200).json({
+    ok: true,
+    saved: saved.status === 'fulfilled',
+    emailed: mailed.status === 'fulfilled',
+  })
 }
