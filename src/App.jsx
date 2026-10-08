@@ -469,9 +469,12 @@ function Intro() {
   return (
     <section id="top" className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 pt-6 sm:pt-10 lg:pt-12">
       <div className="eyebrow mb-3">Noida · Gurugram</div>
-      <h1 className="font-display text-[clamp(2rem,5vw+0.25rem,4rem)] leading-[1.08] tracking-[-0.01em] max-w-4xl">
-        Three homes in Noida & Gurugram, hosted by {spira3028.hostName}.
+      <h1 className="font-display text-[clamp(1.75rem,3.5vw+0.25rem,3rem)] leading-[1.1] tracking-[-0.01em] max-w-4xl">
+        Three homes, curated with love.
       </h1>
+      <p className="font-display text-espresso/80 mt-2 text-[clamp(1.125rem,1.5vw+0.5rem,1.5rem)] leading-[1.3]">
+        Hosted by {spira3028.hostName} — an IIT graduate couple.
+      </p>
       <p className="text-bark mt-4 text-[16px] sm:text-[17px] font-light leading-[1.7] max-w-2xl">
         Two river-view studios high above the Yamuna in Noida, and a cozy boho one-bedroom near Millennium City Centre metro in Gurugram — pick the one that suits your stay and send us an enquiry from its page.
       </p>
