@@ -12,6 +12,7 @@ const spira2212 = {
   id: 'spira-2212',
   dashName: 'Spira 2212',
   floor: '22nd floor',
+  badge: '22nd floor, Noida',   // card tag on the home page
   area: 'Supernova Spira, Noida',
   backupNote: true,         // another Spira unit can stand in if this one is booked
   name: '22nd floor — Designer river-view studio, Noida',
@@ -104,6 +105,7 @@ const spira3028 = {
   id: 'spira-3028',
   dashName: 'Spira 3028',      // the property's name in the Roam in Heels dashboard
   floor: '30th floor',
+  badge: '30th floor, Noida',
   area: 'Supernova Spira, Noida',
   backupNote: true,
   name: '30th floor — Luxury apartment (Riverview), Noida',
@@ -493,7 +495,7 @@ function PropertyCards() {
               <div className="block relative overflow-hidden bg-bone aspect-[4/3]">
                 <img src={p.images[0]} alt={p.name} loading="eager" className="w-full h-full object-cover transition-transform duration-[480ms] ease-soft group-hover:scale-[1.03]" />
                 <span className="absolute top-4 left-4 bg-white/95 text-espresso text-[12px] tracking-[0.06em] uppercase px-3 py-1.5 rounded-pill shadow-soft">
-                  {p.floor}
+                  {p.badge || p.floor}
                 </span>
               </div>
               <div className="p-6 sm:p-7 flex flex-col flex-1">
