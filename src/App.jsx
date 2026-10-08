@@ -12,6 +12,8 @@ const spira2212 = {
   id: 'spira-2212',
   dashName: 'Spira 2212',
   floor: '22nd floor',
+  area: 'Supernova Spira, Noida',
+  backupNote: true,         // another Spira unit can stand in if this one is booked
   name: '22nd floor — Designer river-view studio, Noida',
   cardTitle: 'Designer river-view studio',
   cardLine: 'Crystal chandelier, rain shower and a sunset balcony over the Yamuna.',
@@ -102,6 +104,8 @@ const spira3028 = {
   id: 'spira-3028',
   dashName: 'Spira 3028',      // the property's name in the Roam in Heels dashboard
   floor: '30th floor',
+  area: 'Supernova Spira, Noida',
+  backupNote: true,
   name: '30th floor — Luxury apartment (Riverview), Noida',
   cardTitle: 'Riverview luxury studio',
   cardLine: 'Minimalist luxury, river views and a private balcony, 30 floors above Sector 94.',
@@ -212,7 +216,105 @@ const spira3028 = {
   hostName: 'Mansi & Deependra',
 }
 
-const PROPERTIES = [spira3028, spira2212]
+const ggn45 = {
+  id: 'ggn-45',
+  dashName: '685, Sector 45, Ggn',
+  floor: 'Sector 45, Gurugram',
+  area: 'Near Millennium City Centre metro',
+  name: 'Premium cozy ambience — near Millennium metro, Gurugram',
+  cardTitle: 'Boho city escape',
+  cardLine: 'Warm boho interiors, a lush balcony with city views, basketball and board games.',
+  airbnb: 'https://www.airbnb.co.in/rooms/1789171154499946061',
+  shortDescription:
+    "Your cozy city escape in Gurugram. A premium, aesthetic one-bedroom near Millennium City Centre Metro, made for slow mornings, coffee dates, workcations and weekend plans. With a cozy bedroom, stylish interiors, a lush balcony with city views and warm boho vibes, this place is your perfect little reset from the daily chaos. Come, stay, chill and make some memories.",
+  images: [
+    '/photos/ggn45/bedroom-1.jpg',  // cover — bed with the balcony door and city light
+    '/photos/ggn45/balcony-1.jpg',
+    '/photos/ggn45/living-1.jpg',
+    '/photos/ggn45/kitchen-1.jpg',
+    '/photos/ggn45/bathroom-1.jpg',
+  ],
+  gallery: [
+    { label: 'Bedroom',     photos: Array.from({ length: 6 },  (_, i) => `/photos/ggn45/bedroom-${i + 1}.jpg`) },
+    { label: 'Living room', photos: Array.from({ length: 9 },  (_, i) => `/photos/ggn45/living-${i + 1}.jpg`) },
+    { label: 'Balcony',     photos: Array.from({ length: 7 },  (_, i) => `/photos/ggn45/balcony-${i + 1}.jpg`) },
+    { label: 'Kitchen',     photos: Array.from({ length: 10 }, (_, i) => `/photos/ggn45/kitchen-${i + 1}.jpg`) },
+    { label: 'Bathroom',    photos: Array.from({ length: 5 },  (_, i) => `/photos/ggn45/bathroom-${i + 1}.jpg`) },
+  ],
+  highlights: { guests: 3, bedrooms: 1, beds: 1, bathrooms: 1 },
+  perfectFor: [
+    {
+      emoji: '❤️',
+      title: 'Couples',
+      body: "Looking for something more than just a hotel room? This is your little space to actually spend time together — play a game of basketball, challenge each other over board games, have slow coffee mornings on the balcony, curl up for a cozy evening and take a few aesthetic pictures.\n\nPerfect for date nights, birthdays, anniversaries, staycations or a spontaneous weekend together.",
+    },
+    {
+      emoji: '💻',
+      title: 'Remote workers & business trips',
+      body: "A comfortable home base with a dedicated workspace and reliable Wi-Fi for workcations, business trips and remote working — and the balcony is right there when it's time to switch off.",
+    },
+    {
+      emoji: '🌿',
+      title: 'Weekend getaways',
+      body: "No elaborate plans needed. Check in, grab a coffee, play some games and enjoy a slow weekend together.",
+    },
+    {
+      emoji: '🐾',
+      title: 'Pet parents',
+      body: "Your furry friends are welcome too — bring your pet along and make the trip a little more special.",
+    },
+    {
+      emoji: '🚇',
+      title: 'City explorers',
+      body: "Located in Sector 45 Gurugram, with easy connectivity to the city's major areas and transport network:\n\n• Millennium City Centre Metro — approx. 2.5 km\n• Fortis Hospital, Sector 44 — approx. 2 km\n• Sector 31 HUDA Market — approx. 3.5 km\n• Galleria Market, Sector 28 — approx. 3.5 km\n• Leisure Valley Park — approx. 4 km\n• Medanta Hospital, Sector 38 — approx. 4.5 km",
+    },
+  ],
+  spaces: [
+    {
+      emoji: '🛏️',
+      title: 'Bedroom',
+      body: "A comfortable bedroom with a plush upholstered bed, crisp white linens, soft cushions and warm lighting — whether you're catching up on sleep or having a laid-back evening. A glass door opens towards the balcony and the green city view.\n\nInside: air conditioning, ceiling fan, wardrobe, work desk and chair.",
+    },
+    {
+      emoji: '🛋️',
+      title: 'Living room',
+      body: "Warm boho interiors with a cozy grey sofa, a marble-top coffee table, woven wall art, a vintage clock and a gallery wall of classic-car prints — designed to feel like a little escape from the city.\n\nInside: sofa, air conditioning, ceiling fan, floor lamp.",
+    },
+    {
+      emoji: '🌿',
+      title: 'Balcony with city views',
+      body: "Your little outdoor corner, lush with plants, rattan stools and a wooden table — grab your morning coffee, have evening conversations or simply take a breather. After dark, rope-hung Edison bulbs light up the city nightscape.",
+    },
+    {
+      emoji: '🏀',
+      title: 'Basketball & board games',
+      body: "Because staying in doesn't have to mean being bored. Grab a ball and challenge your partner to a quick game of in-house basketball, or pick a board game for a laid-back evening.\n\nAlso: free Netflix and Prime Video.",
+    },
+    {
+      emoji: '🍳',
+      title: 'Kitchen',
+      body: "A modern modular kitchen to prepare simple meals, coffee or a quick snack whenever you want.\n\nInside: induction cooktop, chimney, microwave, fridge, pots and pans, crockery and cutlery, glasses, and basic spices.",
+    },
+    {
+      emoji: '🚿',
+      title: 'Bathroom',
+      body: "A stylish bathroom with warm marble-look walls, a vessel wash basin, a wall-hung toilet with health faucet and a rain shower.",
+    },
+    {
+      emoji: '💻',
+      title: 'Workspace & Wi-Fi',
+      body: "A dedicated workspace gives you a comfortable spot to focus, and Wi-Fi keeps you connected whether you're joining a work call, streaming or planning your day.",
+    },
+    {
+      emoji: '🏠',
+      title: 'Parking & pets',
+      body: "Free, safe parking directly outside the building, and pets are welcome.",
+    },
+  ],
+  hostName: 'Mansi & Deependra',
+}
+
+const PROPERTIES = [spira3028, spira2212, ggn45]
 const propertyById = (id) => PROPERTIES.find((p) => p.id === id)
 
 /* ----------------------------------------------------------------------------
@@ -314,7 +416,7 @@ export default function App() {
     if (!window.location.hash) window.scrollTo(0, 0)
     document.title = property
       ? `${property.cardTitle} · ${property.floor} — Roam in Heels`
-      : 'Roam in Heels — River-view homes in Noida'
+      : 'Roam in Heels — Homes in Noida & Gurugram'
   }, [pageId])
 
   return (
@@ -359,17 +461,17 @@ function PropertyPage({ property, openGallery }) {
 }
 
 /* ----------------------------------------------------------------------------
- * Intro + the two property cards — the first thing a visitor sees
+ * Intro + the property cards — the first thing a visitor sees
  * -------------------------------------------------------------------------- */
 function Intro() {
   return (
     <section id="top" className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 pt-6 sm:pt-10 lg:pt-12">
-      <div className="eyebrow mb-3">Supernova Spira · Sector 94, Noida</div>
+      <div className="eyebrow mb-3">Noida · Gurugram</div>
       <h1 className="font-display text-[clamp(2rem,5vw+0.25rem,4rem)] leading-[1.08] tracking-[-0.01em] max-w-4xl">
-        Two river-view homes, hosted by {spira3028.hostName}.
+        Three homes in Noida & Gurugram, hosted by {spira3028.hostName}.
       </h1>
       <p className="text-bark mt-4 text-[16px] sm:text-[17px] font-light leading-[1.7] max-w-2xl">
-        High above the Yamuna in one of Noida's iconic towers — pick the one that suits your stay and send us an enquiry from its page.
+        Two river-view studios high above the Yamuna in Noida, and a cozy boho one-bedroom near Millennium City Centre metro in Gurugram — pick the one that suits your stay and send us an enquiry from its page.
       </p>
     </section>
   )
@@ -378,7 +480,7 @@ function Intro() {
 function PropertyCards() {
   return (
     <section id="homes" aria-label="Our homes" className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 mt-8 sm:mt-12 mb-16 sm:mb-24">
-      <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
         {PROPERTIES.map((p) => {
           const h = p.highlights
           return (
@@ -488,7 +590,7 @@ function PropertySection({ property, openGallery, onEnquire }) {
     <section id="property" className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 pt-4 sm:pt-6">
       {/* Title block */}
       <div className="mb-5 sm:mb-10 max-w-4xl">
-        <div className="eyebrow mb-3">{property.floor} · Supernova Spira, Noida</div>
+        <div className="eyebrow mb-3">{property.floor} · {property.area}</div>
         <h1 className="font-display text-[clamp(1.875rem,5vw+0.25rem,4rem)] leading-[1.1] sm:leading-[1.05] tracking-[-0.01em]">
           {name}
         </h1>
@@ -742,7 +844,7 @@ function EnquirySection({ propertyId, setPropertyId }) {
   const [status, setStatus] = useState('idle') // idle | submitting | success | error
 
   const chosen = propertyById(propertyId)
-  // Guest cap: the chosen home's, or the larger of the two when either will do.
+  // Guest cap: the chosen home's, or the largest of them when any will do.
   const maxGuests = chosen ? chosen.highlights.guests : Math.max(...PROPERTIES.map((p) => p.highlights.guests))
 
   function update(field, value) {
@@ -777,9 +879,9 @@ function EnquirySection({ propertyId, setPropertyId }) {
     const payload = {
       ...form,
       // The dashboard name ('Spira 2212'), so the enquiry lands under the right
-      // property there; '' when the guest is happy with either home.
+      // property there; '' when the guest is happy with any home.
       property: chosen ? chosen.dashName : '',
-      propertyLabel: chosen ? `${chosen.dashName} — ${chosen.name}` : 'Either home — whichever is free',
+      propertyLabel: chosen ? `${chosen.dashName} — ${chosen.name}` : 'Any home — whichever is free',
       submittedAt: new Date().toISOString(),
     }
     try {
@@ -834,15 +936,15 @@ function EnquirySection({ propertyId, setPropertyId }) {
                   className={inputCls(false)}
                   aria-label="Which home"
                 >
-                  <option value="">Either home — whichever is free</option>
+                  <option value="">Any home — whichever is free</option>
                   {PROPERTIES.map((p) => (
                     <option key={p.id} value={p.id}>{p.floor} — {p.cardTitle}</option>
                   ))}
                 </select>
-                <span className="text-[12.5px] text-bark mt-2 block leading-relaxed">
+                {chosen?.backupNote && <span className="text-[12.5px] text-bark mt-2 block leading-relaxed">
                   <Icon name="sparkle" className="w-3.5 h-3.5 inline -mt-0.5 mr-1 text-rose" />
                   In case the unit is not available on your dates, we will provide another unit in the same building.
-                </span>
+                </span>}
               </label>
 
               <Field label="Full name" required error={errors.fullName}>
