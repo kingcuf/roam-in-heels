@@ -7,6 +7,12 @@
     {
       "source": "/homes/:path*",
       "destination": "/index.html"
+    },
+    {
+      "source": "/stays/:path*",
+      "destination": "/index.html"
     }
-  ]
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
 }

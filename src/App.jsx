@@ -1,4 +1,11 @@
-import { useState, useMemo, useEffect, cloneElement, isValidElement } from 'react'
+import { useState, useMemo, useEffect, useRef, cloneElement, isValidElement } from 'react'
+import {
+  trackPageView, trackListingView, trackGalleryOpen,
+  trackEnquiryStart, trackEnquirySent, trackOutbound,
+} from './analytics'
+import { seoFor, PHONE_DISPLAY, PHONE_HREF, WHATSAPP_HREF } from './seo'
+import { resolve, HOME } from './router'
+import { placePath, citiesOf, hubsOf, siblingsOf } from './places'
 
 /* ----------------------------------------------------------------------------
  * PROPERTY DATA — one entry per home. The UI reads only from these objects;
@@ -15,29 +22,35 @@ const spira2212 = {
   badge: '22nd floor, Noida',   // card tag on the home page
   area: 'Supernova Spira, Noida',
   backupNote: true,         // another Spira unit can stand in if this one is booked
-  name: '22nd floor — Designer river-view studio, Noida',
-  cardTitle: 'Designer river-view studio',
+  name: 'Designer river-view studio on the 22nd floor, Sector 94 Noida',
+  h1: 'Luxury Airbnb designer studio — 22nd floor, Supernova Spira Noida',
+  cardTitle: 'Designer studio with river views, Noida',
   cardLine: 'Crystal chandelier, rain shower and a sunset balcony over the Yamuna.',
   airbnb: 'https://www.airbnb.co.in/rooms/1746225491231648460',
   shortDescription:
     "We're an IIT graduate couple who love designing beautiful spaces and hosting amazing guests. This 22nd-floor studio in Supernova Spira, Sector 94 Noida brings elegant designer interiors with a premium hotel-like feel — a crystal chandelier over a plush L-shaped sofa, a comfortable bed with high-quality linens, a rain shower, a Netflix-and-work nook, and a private balcony with river and sunset views. High-speed Wi-Fi, a well-equipped kitchenette and hassle-free self check-in make it easy for couples, work travellers and staycation lovers.",
   images: [
-    '/photos/2212/exterior-1.jpg',  // cover — sunset over the Yamuna from the balcony
-    '/photos/2212/bedroom-7.jpg',   // bed facing the river through glass doors
-    '/photos/2212/living-2.jpg',
-    '/photos/2212/kitchen-2.jpg',
-    '/photos/2212/workspace-1.jpg',
+    '/photos/2212/exterior-1.webp',  // cover — sunset over the Yamuna from the balcony
+    '/photos/2212/bedroom-7.webp',   // bed facing the river through glass doors
+    '/photos/2212/living-2.webp',
+    '/photos/2212/kitchen-2.webp',
+    '/photos/2212/workspace-1.webp',
   ],
   gallery: [
-    { label: 'Living room', photos: Array.from({ length: 7 }, (_, i) => `/photos/2212/living-${i + 1}.jpg`) },
-    { label: 'Bedroom',     photos: Array.from({ length: 8 }, (_, i) => `/photos/2212/bedroom-${i + 1}.jpg`) },
-    { label: 'Balcony',     photos: [...Array.from({ length: 4 }, (_, i) => `/photos/2212/balcony-${i + 1}.jpg`), '/photos/2212/exterior-1.jpg', '/photos/2212/exterior-2.jpg'] },
-    { label: 'Kitchen',     photos: Array.from({ length: 6 }, (_, i) => `/photos/2212/kitchen-${i + 1}.jpg`) },
-    { label: 'Bathroom',    photos: Array.from({ length: 2 }, (_, i) => `/photos/2212/bathroom-${i + 1}.jpg`) },
-    { label: 'Workspace',   photos: Array.from({ length: 2 }, (_, i) => `/photos/2212/workspace-${i + 1}.jpg`) },
-    { label: 'Entrance',    photos: Array.from({ length: 2 }, (_, i) => `/photos/2212/extra-${i + 1}.jpg`) },
+    { label: 'Living room', photos: Array.from({ length: 7 }, (_, i) => `/photos/2212/living-${i + 1}.webp`) },
+    { label: 'Bedroom',     photos: Array.from({ length: 8 }, (_, i) => `/photos/2212/bedroom-${i + 1}.webp`) },
+    { label: 'Balcony',     photos: [...Array.from({ length: 4 }, (_, i) => `/photos/2212/balcony-${i + 1}.webp`), '/photos/2212/exterior-1.webp', '/photos/2212/exterior-2.webp'] },
+    { label: 'Kitchen',     photos: Array.from({ length: 6 }, (_, i) => `/photos/2212/kitchen-${i + 1}.webp`) },
+    { label: 'Bathroom',    photos: Array.from({ length: 2 }, (_, i) => `/photos/2212/bathroom-${i + 1}.webp`) },
+    { label: 'Workspace',   photos: Array.from({ length: 2 }, (_, i) => `/photos/2212/workspace-${i + 1}.webp`) },
+    { label: 'Entrance',    photos: Array.from({ length: 2 }, (_, i) => `/photos/2212/extra-${i + 1}.webp`) },
   ],
   highlights: { guests: 2, bedrooms: 1, beds: 1, bathrooms: 1 },
+  amenities: [
+    'High-speed Wi-Fi', 'Central air conditioning', 'Kitchenette', 'Private balcony',
+    'Netflix', 'Workspace with an ergonomic chair', 'Self check-in with a lockbox',
+    'Paid parking on premises', 'Pets welcome', 'Daily housekeeping', 'Smoke alarm', 'Lift',
+  ],
   perfectFor: [
     {
       emoji: '❤️',
@@ -108,27 +121,28 @@ const spira3028 = {
   badge: '30th floor, Noida',
   area: 'Supernova Spira, Noida',
   backupNote: true,
-  name: '30th floor — Luxury apartment (Riverview), Noida',
-  cardTitle: 'Riverview luxury studio',
+  name: 'River-view studio on the 30th floor, Sector 94 Noida',
+  h1: 'Luxury Airbnb studio with river views — 30th floor, Sector 94 Noida',
+  cardTitle: 'River-view studio, Noida',
   cardLine: 'Minimalist luxury, river views and a private balcony, 30 floors above Sector 94.',
   airbnb: 'https://www.airbnb.co.in/rooms/1676660261082003123',
   shortDescription:
     "Hosted by Mansi & Deependra, a corporate-professional IIT graduate couple, this 30th-floor studio in Supernova Spira, Sector 94 Noida offers river views, minimalist luxury, cozy lighting, balcony seating, Smart TV, Wi-Fi, workspace, kitchen essentials, mini fridge, and games like Jenga & String Hockey. Perfect for couples, small families, work travellers, and staycation lovers. Near Okhla Bird Sanctuary Metro, Amity, Sector 18, DLF Mall, Film City & South Delhi.",
   // Hero gallery — 1 large + 4 thumbnails on desktop. Re-order to surface your favourites.
   images: [
-    '/photos/bedroom-4.jpg', // hero — balcony view king-bed shot
-    '/photos/balcony-1.jpg',
-    '/photos/kitchen-7.jpg',
-    '/photos/bathroom-1.jpg',
-    '/photos/workspace-2.jpg',
+    '/photos/bedroom-4.webp', // hero — balcony view king-bed shot
+    '/photos/balcony-1.webp',
+    '/photos/kitchen-7.webp',
+    '/photos/bathroom-1.webp',
+    '/photos/workspace-2.webp',
   ],
   // Full gallery — shown in the lightbox, grouped by room.
   gallery: [
-    { label: 'Bedrooms',  photos: Array.from({ length: 11 }, (_, i) => `/photos/bedroom-${i + 1}.jpg`) },
-    { label: 'Balcony',   photos: Array.from({ length: 8  }, (_, i) => `/photos/balcony-${i + 1}.jpg`) },
-    { label: 'Kitchen',   photos: Array.from({ length: 7  }, (_, i) => `/photos/kitchen-${i + 1}.jpg`) },
-    { label: 'Bathroom',  photos: Array.from({ length: 8  }, (_, i) => `/photos/bathroom-${i + 1}.jpg`) },
-    { label: 'Workspace', photos: Array.from({ length: 2  }, (_, i) => `/photos/workspace-${i + 1}.jpg`) },
+    { label: 'Bedrooms',  photos: Array.from({ length: 11 }, (_, i) => `/photos/bedroom-${i + 1}.webp`) },
+    { label: 'Balcony',   photos: Array.from({ length: 8  }, (_, i) => `/photos/balcony-${i + 1}.webp`) },
+    { label: 'Kitchen',   photos: Array.from({ length: 7  }, (_, i) => `/photos/kitchen-${i + 1}.webp`) },
+    { label: 'Bathroom',  photos: Array.from({ length: 8  }, (_, i) => `/photos/bathroom-${i + 1}.webp`) },
+    { label: 'Workspace', photos: Array.from({ length: 2  }, (_, i) => `/photos/workspace-${i + 1}.webp`) },
   ],
   highlights: {
     guests: 2,
@@ -136,6 +150,11 @@ const spira3028 = {
     beds: 1,
     bathrooms: 1,
   },
+  amenities: [
+    'High-speed Wi-Fi', 'Air conditioning', 'Kitchen', 'Private balcony',
+    'Smart TV', 'Workspace', 'Free parking on premises',
+    'Pets welcome on prior request', 'Smoke alarm', 'Board games',
+  ],
   perfectFor: [
     {
       emoji: '❤️',
@@ -223,27 +242,33 @@ const ggn45 = {
   dashName: '685, Sector 45, Ggn',
   floor: 'Sector 45, Gurugram',
   area: 'Near Millennium City Centre metro',
-  name: 'Premium cozy ambience — near Millennium metro, Gurugram',
-  cardTitle: 'Boho city escape',
+  name: 'Boho one-bedroom home near Millennium Metro, Gurugram',
+  h1: 'Luxury Airbnb 1BHK near Millennium Metro, Gurugram',
+  cardTitle: 'Boho 1BHK near Millennium Metro',
   cardLine: 'Warm boho interiors, a lush balcony with city views, basketball and board games.',
   airbnb: 'https://www.airbnb.co.in/rooms/1789171154499946061',
   shortDescription:
     "Your cozy city escape in Gurugram. A premium, aesthetic one-bedroom near Millennium City Centre Metro, made for slow mornings, coffee dates, workcations and weekend plans. With a cozy bedroom, stylish interiors, a lush balcony with city views and warm boho vibes, this place is your perfect little reset from the daily chaos. Come, stay, chill and make some memories.",
   images: [
-    '/photos/ggn45/bedroom-1.jpg',  // cover — bed with the balcony door and city light
-    '/photos/ggn45/balcony-1.jpg',
-    '/photos/ggn45/living-1.jpg',
-    '/photos/ggn45/kitchen-1.jpg',
-    '/photos/ggn45/bathroom-1.jpg',
+    '/photos/ggn45/bedroom-1.webp',  // cover — bed with the balcony door and city light
+    '/photos/ggn45/balcony-1.webp',
+    '/photos/ggn45/living-1.webp',
+    '/photos/ggn45/kitchen-1.webp',
+    '/photos/ggn45/bathroom-1.webp',
   ],
   gallery: [
-    { label: 'Bedroom',     photos: Array.from({ length: 6 },  (_, i) => `/photos/ggn45/bedroom-${i + 1}.jpg`) },
-    { label: 'Living room', photos: Array.from({ length: 9 },  (_, i) => `/photos/ggn45/living-${i + 1}.jpg`) },
-    { label: 'Balcony',     photos: Array.from({ length: 7 },  (_, i) => `/photos/ggn45/balcony-${i + 1}.jpg`) },
-    { label: 'Kitchen',     photos: Array.from({ length: 10 }, (_, i) => `/photos/ggn45/kitchen-${i + 1}.jpg`) },
-    { label: 'Bathroom',    photos: Array.from({ length: 5 },  (_, i) => `/photos/ggn45/bathroom-${i + 1}.jpg`) },
+    { label: 'Bedroom',     photos: Array.from({ length: 6 },  (_, i) => `/photos/ggn45/bedroom-${i + 1}.webp`) },
+    { label: 'Living room', photos: Array.from({ length: 9 },  (_, i) => `/photos/ggn45/living-${i + 1}.webp`) },
+    { label: 'Balcony',     photos: Array.from({ length: 7 },  (_, i) => `/photos/ggn45/balcony-${i + 1}.webp`) },
+    { label: 'Kitchen',     photos: Array.from({ length: 10 }, (_, i) => `/photos/ggn45/kitchen-${i + 1}.webp`) },
+    { label: 'Bathroom',    photos: Array.from({ length: 5 },  (_, i) => `/photos/ggn45/bathroom-${i + 1}.webp`) },
   ],
   highlights: { guests: 3, bedrooms: 1, beds: 1, bathrooms: 1 },
+  amenities: [
+    'High-speed Wi-Fi', 'Air conditioning', 'Kitchen', 'Balcony with city views',
+    'Netflix', 'Workspace', 'Free parking outside the building',
+    'Pets welcome', 'Board games', 'Basketball court',
+  ],
   perfectFor: [
     {
       emoji: '❤️',
@@ -316,7 +341,7 @@ const ggn45 = {
   hostName: 'Mansi & Deependra',
 }
 
-const PROPERTIES = [spira3028, spira2212, ggn45]
+export const PROPERTIES = [spira3028, spira2212, ggn45]
 const propertyById = (id) => PROPERTIES.find((p) => p.id === id)
 
 /* ----------------------------------------------------------------------------
@@ -381,9 +406,14 @@ const Icon = ({ name, className = 'w-5 h-5' }) => {
  * vercel.json rewrites /homes/* to index.html so a shared link loads directly.
  * -------------------------------------------------------------------------- */
 const homePath = (id) => `/homes/${id}`
-function currentPropertyId() {
-  const m = /^\/homes\/([^/?#]+)/.exec(window.location.pathname)
-  return m && propertyById(m[1]) ? m[1] : null
+/* Rewrite one meta tag in place, for a page change with no reload. */
+function setMeta(attr, key, content) {
+  const el = document.querySelector(`meta[${attr}="${key}"]`)
+  if (el) el.setAttribute('content', content)
+}
+
+function currentPath() {
+  return typeof window === 'undefined' ? '/' : window.location.pathname
 }
 function navigate(to) {
   if (to === window.location.pathname) return
@@ -401,32 +431,44 @@ function Link({ to, className, children, ...rest }) {
   return <a href={to} onClick={onClick} className={className} {...rest}>{children}</a>
 }
 
-export default function App() {
-  const [pageId, setPageId] = useState(currentPropertyId)
+export default function App({ initialPath }) {
+  const [path, setPath] = useState(() => initialPath || currentPath())
   // Which home's gallery is open in the lightbox (null = closed)
   const [galleryFor, setGalleryFor] = useState(null)
 
   useEffect(() => {
-    const onPop = () => { setPageId(currentPropertyId()); setGalleryFor(null) }
+    const onPop = () => { setPath(currentPath()); setGalleryFor(null) }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  // A new page starts at the top, and says which home it is in the tab title.
-  const property = pageId ? propertyById(pageId) : null
+  const route = resolve(path, PROPERTIES)
+  const property = route.kind === 'property' ? route.property : null
+
+  // A new page starts at the top, and carries its own title and description.
   useEffect(() => {
     if (!window.location.hash) window.scrollTo(0, 0)
-    document.title = property
-      ? `${property.cardTitle} · ${property.floor} — Roam in Heels`
-      : 'Roam in Heels — Homes in Noida & Gurugram'
-  }, [pageId])
+    const seo = seoFor(route)
+    document.title = seo.title
+    setMeta('name', 'description', seo.description)
+    setMeta('property', 'og:title', seo.title)
+    setMeta('property', 'og:description', seo.description)
+    setMeta('property', 'og:url', seo.canonical)
+    const canonical = document.querySelector('link[rel="canonical"]')
+    if (canonical) canonical.setAttribute('href', seo.canonical)
+    // Routing happens without a reload, so each page has to be reported by hand.
+    trackPageView(window.location.pathname, document.title)
+    if (property) trackListingView(property)
+  }, [path])
 
   return (
     <div className="min-h-screen bg-white text-espresso">
-      <NavBar onDetail={!!property} />
+      <NavBar onDetail={route !== HOME} />
       <main>
-        {property ? (
-          <PropertyPage key={property.id} property={property} openGallery={() => setGalleryFor(property.id)} />
+        {route.kind === 'property' ? (
+          <PropertyPage key={property.id} property={property} openGallery={() => { setGalleryFor(property.id); trackGalleryOpen(property) }} />
+        ) : route.kind === 'place' ? (
+          <PlacePage key={route.place.slug} place={route.place} />
         ) : (
           <>
             <Intro />
@@ -434,9 +476,9 @@ export default function App() {
           </>
         )}
       </main>
-      <Footer onDetail={!!property} />
+      <Footer onDetail={route !== HOME} />
       {galleryFor && <GalleryLightbox property={propertyById(galleryFor)} onClose={() => setGalleryFor(null)} />}
-      {property && <StickyMobileCta />}
+      {route !== HOME && <StickyMobileCta />}
     </div>
   )
 }
@@ -463,6 +505,110 @@ function PropertyPage({ property, openGallery }) {
 }
 
 /* ----------------------------------------------------------------------------
+ * A place page — one city or one landmark, the homes that serve it, what is
+ * nearby, the questions guests ask, and the same enquiry form as everywhere.
+ * -------------------------------------------------------------------------- */
+function PlacePage({ place }) {
+  const homes = place.homes.map(propertyById).filter(Boolean)
+  // With one home there is nothing to choose, so the form starts on it.
+  const [enquiryProp, setEnquiryProp] = useState(homes.length === 1 ? homes[0].id : '')
+  const siblings = siblingsOf(place)
+
+  return (
+    <>
+      <section className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 pt-5 sm:pt-8">
+        <Link to="/" className="inline-flex items-center gap-1.5 text-[14px] text-bark hover:text-rose transition-colors">
+          <span aria-hidden className="text-lg leading-none">‹</span> All homes
+        </Link>
+        <div className="eyebrow mt-6 mb-3">{place.eyebrow}</div>
+        <h1 className="font-display text-[clamp(1.75rem,3.5vw+0.25rem,3rem)] leading-[1.1] tracking-[-0.01em] max-w-4xl">
+          {place.h1}
+        </h1>
+        {place.landmark && place.distance !== 'nearby' && (
+          <p className="font-display text-espresso/80 mt-2 text-[clamp(1.125rem,1.5vw+0.5rem,1.5rem)] leading-[1.3]">
+            {place.distance} from {place.landmark}
+          </p>
+        )}
+        <p className="text-bark mt-4 text-[16px] sm:text-[17px] font-light leading-[1.7] max-w-2xl">
+          {place.lede}
+        </p>
+      </section>
+
+      <PropertyCards
+        list={homes}
+        heading={homes.length === 1 ? 'The home' : 'The homes'}
+        cardTag="h3"
+      />
+
+      {(place.gettingThere || place.goodFor) && (
+        <section className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 -mt-8 sm:-mt-12 mb-14 sm:mb-16 grid lg:grid-cols-2 gap-10 lg:gap-16">
+          {place.gettingThere && (
+            <div>
+              <h2 className="font-display text-2xl sm:text-3xl mb-4">Getting there</h2>
+              <p className="text-bark text-[15.5px] leading-[1.75] font-light">{place.gettingThere}</p>
+            </div>
+          )}
+          {place.goodFor && (
+            <div>
+              <h2 className="font-display text-2xl sm:text-3xl mb-4">Who tends to stay here</h2>
+              <p className="text-bark text-[15.5px] leading-[1.75] font-light">{place.goodFor}</p>
+            </div>
+          )}
+        </section>
+      )}
+
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 mb-16 sm:mb-20 grid lg:grid-cols-2 gap-12 lg:gap-16">
+        {place.nearby?.length > 0 && (
+          <div>
+            <h2 className="font-display text-2xl sm:text-3xl mb-5">{place.nearbyHeading || "What's nearby"}</h2>
+            <ul className="border-t border-stone">
+              {place.nearby.map((spot) => (
+                <li key={spot.name} className="flex items-baseline justify-between gap-6 border-b border-stone py-3.5 text-[15px]">
+                  <span className="text-espresso">{spot.name}</span>
+                  <span className="text-driftwood shrink-0">{spot.distance}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {place.faq?.length > 0 && (
+          <div>
+            <h2 className="font-display text-2xl sm:text-3xl mb-5">Questions guests ask</h2>
+            <div className="border-t border-stone">
+              {place.faq.map((item) => (
+                <Accordion key={item.q} emoji="›" title={item.q}>{item.a}</Accordion>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {siblings.length > 0 && (
+        <section className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 mb-16 sm:mb-20">
+          <h2 className="font-display text-2xl sm:text-3xl mb-5">
+            {place.kind === 'hub' ? 'Everywhere we host' : `Other places in ${place.city}`}
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            {siblings.map((other) => (
+              <Link
+                key={other.slug}
+                to={placePath(other)}
+                className="border border-stone hover:border-rose hover:text-rose px-4 py-2.5 rounded-pill text-[14px] transition-colors"
+              >
+                {other.h1}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <EnquirySection propertyId={enquiryProp} setPropertyId={setEnquiryProp} />
+    </>
+  )
+}
+
+/* ----------------------------------------------------------------------------
  * Intro + the property cards — the first thing a visitor sees
  * -------------------------------------------------------------------------- */
 function Intro() {
@@ -470,10 +616,10 @@ function Intro() {
     <section id="top" className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 pt-6 sm:pt-10 lg:pt-12">
       <div className="eyebrow mb-3">Noida · Gurugram</div>
       <h1 className="font-display text-[clamp(1.75rem,3.5vw+0.25rem,3rem)] leading-[1.1] tracking-[-0.01em] max-w-4xl">
-        Three homes, curated with love.
+        Luxury Airbnb homes in Noida and Gurugram
       </h1>
       <p className="font-display text-espresso/80 mt-2 text-[clamp(1.125rem,1.5vw+0.5rem,1.5rem)] leading-[1.3]">
-        Hosted by {spira3028.hostName} — an IIT graduate couple.
+        Three homes on Airbnb, hosted by {spira3028.hostName} — an IIT graduate couple.
       </p>
       <p className="text-bark mt-4 text-[16px] sm:text-[17px] font-light leading-[1.7] max-w-2xl">
         Two river-view studios high above the Yamuna in Noida, and a cozy boho one-bedroom near Millennium City Centre metro in Gurugram — pick the one that suits your stay and send us an enquiry from its page.
@@ -482,11 +628,19 @@ function Intro() {
   )
 }
 
-function PropertyCards() {
+function PropertyCards({
+  list = PROPERTIES,
+  heading = "Pick the home you'd like to stay in",
+  // On a place page the cards sit under that page's own H2, so they drop a level.
+  cardTag: CardTag = 'h2',
+}) {
   return (
     <section id="homes" aria-label="Our homes" className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 mt-8 sm:mt-12 mb-16 sm:mb-24">
+      <h2 className="font-display text-2xl sm:text-3xl leading-[1.15] mb-6 sm:mb-8">
+        {heading}
+      </h2>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-        {PROPERTIES.map((p) => {
+        {list.map((p) => {
           const h = p.highlights
           return (
             <Link
@@ -496,13 +650,13 @@ function PropertyCards() {
               className="group bg-white rounded-[20px] shadow-card hover:shadow-soft overflow-hidden flex flex-col transition-shadow duration-200 ease-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-rose/40"
             >
               <div className="block relative overflow-hidden bg-bone aspect-[4/3]">
-                <img src={p.images[0]} alt={p.name} loading="eager" className="w-full h-full object-cover transition-transform duration-[480ms] ease-soft group-hover:scale-[1.03]" />
+                <img src={p.images[0]} alt={p.name} loading="eager" fetchPriority="high" className="w-full h-full object-cover transition-transform duration-[480ms] ease-soft group-hover:scale-[1.03]" />
                 <span className="absolute top-4 left-4 bg-white/95 text-espresso text-[12px] tracking-[0.06em] uppercase px-3 py-1.5 rounded-pill shadow-soft">
                   {p.badge || p.floor}
                 </span>
               </div>
               <div className="p-6 sm:p-7 flex flex-col flex-1">
-                <h2 className="font-display text-2xl sm:text-[1.75rem] leading-[1.15]">{p.cardTitle}</h2>
+                <CardTag className="font-display text-2xl sm:text-[1.75rem] leading-[1.15]">{p.cardTitle}</CardTag>
                 <p className="text-bark mt-2 text-[15px] leading-[1.6] font-light">{p.cardLine}</p>
                 <p className="text-driftwood mt-3 text-[13px]">
                   {h.guests} guests · {h.bedrooms} bedroom · {h.beds} bed · {h.bathrooms} bathroom
@@ -564,6 +718,7 @@ function NavBar({ onDetail }) {
               href={link.href}
               target="_blank"
               rel="noreferrer"
+              onClick={() => trackOutbound(link.label)}
               aria-label={`Roam in Heels on ${link.label}`}
               title={link.label}
               className="block w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden hover:opacity-80 active:scale-[0.96] transition-all duration-200 ease-soft"
@@ -597,7 +752,7 @@ function PropertySection({ property, openGallery, onEnquire }) {
       <div className="mb-5 sm:mb-10 max-w-4xl">
         <div className="eyebrow mb-3">{property.floor} · {property.area}</div>
         <h1 className="font-display text-[clamp(1.875rem,5vw+0.25rem,4rem)] leading-[1.1] sm:leading-[1.05] tracking-[-0.01em]">
-          {name}
+          {property.h1 || name}
         </h1>
       </div>
 
@@ -609,7 +764,7 @@ function PropertySection({ property, openGallery, onEnquire }) {
             onClick={openGallery}
             className="col-span-2 row-span-2 group relative overflow-hidden bg-bone"
           >
-            <img src={images[0]} alt={name} loading="eager" className="w-full h-full object-cover transition-transform duration-[480ms] ease-soft group-hover:scale-[1.03]" />
+            <img src={images[0]} alt={name} loading="eager" fetchPriority="high" className="w-full h-full object-cover transition-transform duration-[480ms] ease-soft group-hover:scale-[1.03]" />
           </button>
           {images.slice(1, 5).map((src, i) => (
             <button key={i} onClick={openGallery} className="relative overflow-hidden group bg-bone">
@@ -627,7 +782,7 @@ function PropertySection({ property, openGallery, onEnquire }) {
         {/* Mobile carousel */}
         <div className="md:hidden">
           <div className="relative rounded-2xl overflow-hidden bg-bone">
-            <img src={images[activeImage]} alt={name} loading="eager" className="w-full h-72 object-cover" />
+            <img src={images[activeImage]} alt={name} loading="eager" fetchPriority="high" className="w-full h-72 object-cover" />
             <button
               onClick={openGallery}
               className="absolute bottom-3 right-3 bg-white/95 text-xs tracking-[0.02em] px-4 py-1.5 rounded-pill shadow-soft border border-stone"
@@ -659,10 +814,28 @@ function PropertySection({ property, openGallery, onEnquire }) {
           <div className="flex items-center justify-between border-b border-stone pb-7">
             <div>
               <h2 className="font-display text-3xl sm:text-[2rem] leading-[1.1]">
-                Hosted by {property.hostName}
+                Meet your hosts, {property.hostName}
               </h2>
               <p className="text-bark mt-1.5 text-[15px]">
                 {highlights.guests} {highlights.guests === 1 ? 'guest' : 'guests'} · {highlights.bedrooms} {highlights.bedrooms === 1 ? 'bedroom' : 'bedrooms'} · {highlights.beds} {highlights.beds === 1 ? 'bed' : 'beds'} · {highlights.bathrooms} {highlights.bathrooms === 1 ? 'bathroom' : 'bathrooms'}
+              </p>
+              <p className="mt-3 text-[15px] flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <a
+                  href={PHONE_HREF}
+                  onClick={() => trackOutbound('Call host')}
+                  className="inline-flex items-center gap-2 text-rose hover:text-cocoa transition-colors"
+                >
+                  <Icon name="phone" className="w-4 h-4" /> {PHONE_DISPLAY}
+                </a>
+                <a
+                  href={WHATSAPP_HREF}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => trackOutbound('WhatsApp host')}
+                  className="text-bark hover:text-rose transition-colors underline decoration-stone"
+                >
+                  or message on WhatsApp
+                </a>
               </p>
             </div>
           </div>
@@ -676,9 +849,9 @@ function PropertySection({ property, openGallery, onEnquire }) {
 
           {/* Perfect for */}
           <div id="perfect-for">
-            <h3 className="font-display text-2xl sm:text-3xl mb-6">
-              Perfect for
-            </h3>
+            <h2 className="font-display text-2xl sm:text-3xl mb-6">
+              Who this home is perfect for
+            </h2>
             <div className="border-t border-stone">
               {perfectFor.map((item) => (
                 <Accordion key={item.title} emoji={item.emoji} title={item.title}>
@@ -690,9 +863,9 @@ function PropertySection({ property, openGallery, onEnquire }) {
 
           {/* The space */}
           <div id="the-space">
-            <h3 className="font-display text-2xl sm:text-3xl mb-6">
-              The Space
-            </h3>
+            <h2 className="font-display text-2xl sm:text-3xl mb-6">
+              Inside the home
+            </h2>
             <div className="border-t border-stone">
               {spaces.map((item) => (
                 <Accordion key={item.title} emoji={item.emoji} title={item.title}>
@@ -847,12 +1020,18 @@ function EnquirySection({ propertyId, setPropertyId }) {
   const [form, setForm]     = useState(initial)
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('idle') // idle | submitting | success | error
+  // Whether this guest has typed anything yet, so EnquiryStart fires just once.
+  const touched = useRef(false)
 
   const chosen = propertyById(propertyId)
   // Guest cap: the chosen home's, or the largest of them when any will do.
   const maxGuests = chosen ? chosen.highlights.guests : Math.max(...PROPERTIES.map((p) => p.highlights.guests))
 
   function update(field, value) {
+    if (!touched.current) {
+      touched.current = true
+      trackEnquiryStart(chosen)
+    }
     setForm((f) => ({ ...f, [field]: value }))
     if (errors[field]) setErrors((e) => ({ ...e, [field]: undefined }))
   }
@@ -893,6 +1072,12 @@ function EnquirySection({ propertyId, setPropertyId }) {
       const res = await handleSubmit(payload)
       if (!res?.ok) throw new Error('submit failed')
       setStatus('success')
+      trackEnquirySent({
+        property: chosen,
+        checkIn: form.checkIn,
+        checkOut: form.checkOut,
+        guests: form.guests,
+      })
     } catch (err) {
       console.error(err)
       setStatus('error')
@@ -911,14 +1096,14 @@ function EnquirySection({ propertyId, setPropertyId }) {
         className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 py-12 sm:py-20 lg:py-28 grid lg:grid-cols-2 gap-10 lg:gap-20 items-center bg-cover bg-center rounded-[24px] overflow-hidden"
         style={{
           backgroundImage:
-            'linear-gradient(to right, rgba(253,240,219,0.92) 0%, rgba(253,240,219,0.65) 45%, rgba(253,240,219,0.25) 100%), url(/enquiry-bg.jpg)',
+            'linear-gradient(to right, rgba(253,240,219,0.92) 0%, rgba(253,240,219,0.65) 45%, rgba(253,240,219,0.25) 100%), url(/enquiry-bg.webp)',
         }}
       >
         {/* LEFT — pitch */}
         <div className="relative">
           <div className="eyebrow mb-5">Slip into the booking</div>
           <h2 className="font-display text-[clamp(2.25rem,3.5vw+.25rem,3.5rem)] leading-[1.05] tracking-[-0.01em]">
-            Tell us when you'd like to come, we'll tell you everything else.
+            Tell us your dates and we'll do the rest.
           </h2>
 
         </div>
@@ -1039,7 +1224,11 @@ function EnquirySection({ propertyId, setPropertyId }) {
 
               {status === 'error' && (
                 <div className="text-[13px] text-clay bg-clay/5 border border-clay/30 rounded-md px-3 py-2.5">
-                  Something went a little sideways. Try again, or message us on WhatsApp.
+                  Something went a little sideways. Try again, or{' '}
+                  <a href={WHATSAPP_HREF} target="_blank" rel="noreferrer" className="underline">
+                    message us on WhatsApp
+                  </a>{' '}
+                  — or call {PHONE_DISPLAY}.
                 </div>
               )}
 
@@ -1325,11 +1514,41 @@ function Footer({ onDetail }) {
             </p>
           </div>
         </div>
-        <div />
+        <nav aria-label="Where we host" className="text-[13.5px]">
+          <div className="text-espresso font-medium mb-2">Where we host</div>
+          <ul className="space-y-1.5">
+            {hubsOf().map((hub) => (
+              <li key={hub.slug}>
+                <Link to={placePath(hub)} className="hover:text-rose transition-colors">{hub.h1}</Link>
+              </li>
+            ))}
+            {citiesOf().map((city) => (
+              <li key={city.slug}>
+                <Link to={placePath(city)} className="hover:text-rose transition-colors">{city.h1}</Link>
+                <ul className="mt-1.5 ml-3 space-y-1 text-driftwood text-[12.5px]">
+                  {siblingsOf(city).map((spot) => (
+                    <li key={spot.slug}>
+                      <Link to={placePath(spot)} className="hover:text-rose transition-colors">{spot.h1}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </nav>
         <div className="text-driftwood text-[12.5px] sm:text-right leading-relaxed">
           <div>© {new Date().getFullYear()} Roam in Heels.</div>
+          <div className="mt-1">
+            <a
+              href={PHONE_HREF}
+              onClick={() => trackOutbound('Call host')}
+              className="text-rose hover:text-cocoa transition-colors"
+            >
+              Contact the host: {PHONE_DISPLAY}
+            </a>
+          </div>
           <a href={onDetail ? '#enquiry' : '#homes'} className="text-rose hover:text-cocoa transition-colors">
-            Contact the host
+            Or send an enquiry
           </a>
         </div>
       </div>
